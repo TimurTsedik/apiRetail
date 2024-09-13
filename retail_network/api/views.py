@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from .models import Product, Order, Supplier, OrderItem
 from .serializers import ProductSerializer, OrderSerializer, SupplierSerializer
 from django.shortcuts import get_object_or_404
+from .utils import send_order_confirmation
+
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -29,6 +31,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         for item_data in data['items']:
             product = get_object_or_404(Product, id=item_data['product_id'])
             OrderItem.objects.create(order=order, product=product, quantity=item_data['quantity'], price=product.price)
+
+        # Send confirmation email to the customer
+        send_order_confirmation(order, request.user.email)
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
