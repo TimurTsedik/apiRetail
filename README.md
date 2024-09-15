@@ -7,6 +7,9 @@ docker-compose up -d
 python manage.py makemigrations
 python manage.py migrate
 
+## import data
+python manage.py import_products
+
 ## make user
 python manage.py createsuperuser
 
@@ -51,6 +54,12 @@ curl -X POST http://127.0.0.1:8000/cart/ \
 response:
 {"id":2,"user":4,"product":1,"quantity":2}
 
+## view cart
+curl -X GET http://127.0.0.1:8000/cart/ \
+    -H "Authorization: Token your-auth-token-here"
+response:
+[{"id":2,"user":4,"product":1,"quantity":2}]
+
 ## add contact
 curl -X POST http://127.0.0.1:8000/contacts/ \
     -H "Authorization: Token your-auth-token-here" \
@@ -76,28 +85,15 @@ response:
 curl -X DELETE http://127.0.0.1:8000/contacts/1/ \
     -H "Authorization: Token your-auth-token-here"
 
-## add order
-curl -X POST http://127.0.0.1:8000/orders/ \
+## confirm order
+curl -X POST http://127.0.0.1:8000/orders/confirm/ \
     -H "Authorization: Token 3ee0f32e3f7f20b98cb1c95a74651dc8cf9832fe" \
     -H "Content-Type: application/json" \
     -d '{
-        "items": [
-            {
-                "product_id": 1,
-                "quantity": 2
-            },
-            {
-                "product_id": 3,
-                "quantity": 1
-            }
-        ]
+        "cart_id": 2,
+        "contact_id": 3
     }'
 response:
-{"status":"Order created successfully"}
+{"status":"Order confirmed successfully","order_id":8}
 
-## view cart
-curl -X GET http://127.0.0.1:8000/cart/ \
-    -H "Authorization: Token your-auth-token-here"
-response:
-[{"id":2,"user":4,"product":1,"quantity":2}]
 
