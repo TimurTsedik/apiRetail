@@ -30,18 +30,14 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'supplier', 'price', 'quantity', 'parameters']
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
-
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'quantity', 'price']
+        fields = ['product', 'quantity', 'price']
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True)
-
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'created_at', 'status', 'items']
+        fields = ['id', 'customer', 'created_at', 'updated_at']
 
 
 class CartSerializer(serializers.ModelSerializer):

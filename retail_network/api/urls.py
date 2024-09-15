@@ -16,6 +16,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('cart/', CartView.as_view(), name='cart'),
     path('contacts/', ContactView.as_view(), name='contacts'),
-    path('orders/', OrderListView.as_view(), name='orders'),
+    path('orders/', OrderListView.as_view(), name='order-list'),
+    path('contacts/<int:contact_id>/', ContactView.as_view(), name='contact-delete'),
 ]
 

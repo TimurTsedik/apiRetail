@@ -2,13 +2,16 @@ from rest_framework import viewsets, status
 from .models import Product, Order, Supplier, OrderItem, Contact, Cart
 from .serializers import ProductSerializer, OrderSerializer, SupplierSerializer, ContactSerializer
 from django.shortcuts import get_object_or_404
-from .utils import send_order_confirmation
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated
 from .serializers import CartSerializer
+from rest_framework import generics
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
@@ -63,22 +66,28 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrderSerializer
 
     def create(self, request, *args, **kwargs):
-        # Create an order
         data = request.data
+
+        # Log the incoming request data for debugging purposes
+        logging.debug(f"Received data: {data}")
+
+        if 'items' not in data:
+            return Response({'error': 'No items provided'}, status=status.HTTP_400_BAD_REQUEST)
+
         order = Order.objects.create(customer=request.user)
 
-        # Add order items
         for item_data in data['items']:
             product = get_object_or_404(Product, id=item_data['product_id'])
-            OrderItem.objects.create(order=order, product=product, quantity=item_data['quantity'], price=product.price)
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=item_data['quantity'],
+                price=product.price
+            )
 
-        # Send confirmation email to the customer
-        send_order_confirmation(order, request.user.email)
-
-        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        return Response({'status': 'Order created successfully'}, status=status.HTTP_201_CREATED)
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
@@ -109,10 +118,10 @@ class ContactView(APIView):
         except Contact.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-class OrderListView(APIView):
+class OrderListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer  # This tells the view to use your OrderSerializer
 
-    def get(self, request):
-        orders = Order.objects.filter(customer=request.user)
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        # Return only the orders for the authenticated user
+        return Order.objects.filter(customer=self.request.user)
