@@ -11,6 +11,7 @@ from .serializers import CartSerializer
 from rest_framework import generics
 from rest_framework.decorators import action
 import logging
+from .utils import send_order_confirmation  # Import the email function
 
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({"error": "Cart ID and Contact ID are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Retrieve the cart and contact
             cart = get_object_or_404(Cart, id=cart_id, user=request.user)
             contact = get_object_or_404(Contact, id=contact_id, user=request.user)
 
@@ -93,6 +95,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             # Create the order and link the contact
             order = Order.objects.create(customer=request.user, contact=contact)
 
+            # Create order items from the cart
             for cart_item in cart.items.all():
                 logging.debug(f"Processing cart item: {cart_item}")
                 OrderItem.objects.create(
@@ -106,8 +109,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             cart.items.all().delete()
             logging.debug(f"Cart {cart_id} cleared after order confirmation.")
 
+            # Send order confirmation email
+            send_order_confirmation(order, request.user.email)
+
             return Response({"status": "Order confirmed successfully", "order_id": order.id}, status=status.HTTP_201_CREATED)
 
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+            return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             logging.error(f"An error occurred: {e}")
             return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

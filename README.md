@@ -148,6 +148,22 @@ curl -X POST http://127.0.0.1:8000/orders/confirm/ \
 response:
 {"status":"Order confirmed successfully","order_id":8}
 
+mail sent to contact's email (in developing stage, is printed in console):
+
+```
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: Order Confirmation - 8
+From: admin@example.com
+To: testuser@example.com
+Date: Sun, 15 Sep 2024 14:24:11 -0000
+Message-ID: <172641025162.6170.11250587817648987203@1.0.0.127.in-addr.arpa>
+
+Thank you for your order. Order ID: 9
+-------------------------------------------------------------------------------
+```
+
 ## orders list
 ```bash
 curl -X GET http://127.0.0.1:8000/orders/ \
