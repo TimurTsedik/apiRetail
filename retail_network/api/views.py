@@ -108,6 +108,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             cart.items.all().delete()
             logging.debug(f"Cart {cart_id} cleared after order confirmation.")
 
+            send_order_confirmation(order, contact.email)
+
             return Response({"status": "Order confirmed successfully", "order_id": order.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
