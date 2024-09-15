@@ -126,19 +126,33 @@ class ContactView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = ContactSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # If 'id' is provided, update the contact, else create a new one
+        contact_id = request.data.get('id', None)
+        if contact_id:
+            try:
+                contact = Contact.objects.get(id=contact_id, user=request.user)
+                serializer = ContactSerializer(contact, data=request.data)
+                if serializer.is_valid():
+                    serializer.save(user=request.user)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            except Contact.DoesNotExist:
+                return Response({"error": "Contact not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Create a new contact
+            serializer = ContactSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(user=request.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, contact_id):
         try:
             contact = Contact.objects.get(id=contact_id, user=request.user)
             contact.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Contact deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except Contact.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Contact not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class OrderListView(generics.ListAPIView):

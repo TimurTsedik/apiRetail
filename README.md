@@ -59,6 +59,14 @@ curl -X GET http://127.0.0.1:8000/products/ \
 response:
 [{"id":1,"name":"Смартфон Apple iPhone XS Max 512GB (золотистый)","description":"","supplier":1,"price":"110000.00","quantity":14,"parameters":{"Диагональ (дюйм)":6.5,"Разрешение (пикс)":"2688x1242","Встроенная память (Гб)":512,"Цвет":"золотистый"}}, ...
 
+## get product
+```bash
+curl -X GET http://127.0.0.1:8000/products/\1/ \
+    -H "Authorization: Token your-auth-token-here"
+```
+response:
+{"id":1,"name":"Смартфон Apple iPhone XS Max 512GB (золотистый)","description":"","supplier":1,"price":"110000.00","quantity":14,"parameters":{"Диагональ (дюйм)":6.5,"Разрешение (пикс)":"2688x1242","Встроенная память (Гб)":512,"Цвет":"золотистый"}}
+
 ## add product to cart
 ```bash
 curl -X POST http://127.0.0.1:8000/cart/ \
@@ -95,6 +103,23 @@ curl -X POST http://127.0.0.1:8000/contacts/ \
 ```
 response:
 {"id":3,"first_name":"Smith","last_name":"Doe","email":"john.smith@example.com","phone":"1234567890","address":"5th Avenue, New York, NY 10011"}
+
+## update contact
+```bash
+curl -X POST http://127.0.0.1:8000/contacts/ \
+    -H "Authorization: Token <your_token>" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "id": 1,
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john.doe@example.com",
+        "phone": "1234567890",
+        "address": "456 New St, New City, Country"
+    }'
+```
+response:
+{"id":4,"first_name":"John","last_name":"Doe","email":"john.doe@example.com","phone":"1234567890","address":"456 New St, New City, Country"}
 
 ## view contacts
 ```bash
