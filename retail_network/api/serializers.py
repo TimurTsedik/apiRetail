@@ -35,11 +35,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ['product', 'quantity', 'price']
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
+    items = OrderItemSerializer(many=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'created_at', 'updated_at', 'contact', 'items']
+        fields = ['id', 'customer', 'contact', 'created_at', 'updated_at', 'status', 'items']
+        read_only_fields = ['customer', 'created_at', 'updated_at', 'items']
 
 class CartSerializer(serializers.ModelSerializer):
     class Meta:

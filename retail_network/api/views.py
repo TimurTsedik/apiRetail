@@ -11,7 +11,7 @@ from .serializers import CartSerializer
 from rest_framework import generics
 from rest_framework.decorators import action
 import logging
-from .utils import send_order_confirmation  # Import the email function
+from .utils import send_order_confirmation
 
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         return self.queryset
 
 
+
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
@@ -86,16 +87,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({"error": "Cart ID and Contact ID are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Retrieve the cart and contact
             cart = get_object_or_404(Cart, id=cart_id, user=request.user)
             contact = get_object_or_404(Contact, id=contact_id, user=request.user)
 
             logging.debug(f"Cart retrieved: {cart}, Contact retrieved: {contact}")
 
             # Create the order and link the contact
-            order = Order.objects.create(customer=request.user, contact=contact)
+            order = Order.objects.create(customer=request.user, contact=contact, status='confirmed')
 
-            # Create order items from the cart
             for cart_item in cart.items.all():
                 logging.debug(f"Processing cart item: {cart_item}")
                 OrderItem.objects.create(
@@ -109,17 +108,38 @@ class OrderViewSet(viewsets.ModelViewSet):
             cart.items.all().delete()
             logging.debug(f"Cart {cart_id} cleared after order confirmation.")
 
-            # Send order confirmation email
-            send_order_confirmation(order, request.user.email)
-
             return Response({"status": "Order confirmed successfully", "order_id": order.id}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             logging.error(f"An error occurred: {e}")
             return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            logging.error(f"An error occurred: {e}")
-            return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['patch'], url_path='update-status')
+    def update_status(self, request, pk=None):
+        """
+        Custom action to update the order status.
+        Example request: PATCH /orders/{id}/update-status/
+        """
+        order = get_object_or_404(Order, id=pk, customer=request.user)
+        new_status = request.data.get('status')
+
+        if new_status not in dict(Order.STATUS_CHOICES):
+            return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = new_status
+        order.save()
+
+        return Response({"status": f"Order status updated to {new_status}"}, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, pk=None):
+        try:
+            # Get the specific order for the authenticated user
+            order = get_object_or_404(Order, id=pk, customer=request.user)
+            serializer = OrderSerializer(order)
+            return Response(serializer.data)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -174,4 +194,4 @@ class OrderListView(generics.ListAPIView):
             return Order.objects.filter(customer=self.request.user)
         except Exception as e:
             logging.error(f"Error retrieving orders: {e}")
-            return Order.objects.none()  # Return empty queryset in case of an error
+            return Order.objects.none()

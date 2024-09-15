@@ -1,5 +1,7 @@
 # apiRetail
 
+
+
 ## start DB
 ```bash
 docker-compose up -d
@@ -171,3 +173,23 @@ curl -X GET http://127.0.0.1:8000/orders/ \
 ``` 
 response:
 [{"id":6,"customer":4,"created_at":"2024-09-15T12:32:56.867272Z","updated_at":"2024-09-15T13:06:17.864354Z","contact":null,"items":[{"product":1,"quantity":2,"price":"110000.00"},{"product":3,"quantity":1,"price":"65000.00"}]}, ...]
+
+## get order
+```bash
+curl -X GET http://127.0.0.1:8000/orders/6/ \
+    -H "Authorization: Token your-auth-token-here"
+``` 
+response:
+{"id":6,"customer":4,"contact":null,"created_at":"2024-09-15T12:32:56.867272Z","updated_at":"2024-09-15T13:06:17.864354Z","status":"pending","items":[{"product":1,"quantity":2,"price":"110000.00"},{"product":3,"quantity":1,"price":"65000.00"}]}
+
+## order status update
+```bash
+curl -X PATCH http://127.0.0.1:8000/orders/1/update-status/ \
+    -H "Authorization: Token YOUR_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "status": "shipped"
+    }'
+```
+response:
+{"status":"Order status updated to shipped"}
