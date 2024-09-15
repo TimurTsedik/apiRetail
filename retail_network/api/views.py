@@ -9,7 +9,9 @@ from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated
 from .serializers import CartSerializer
 from rest_framework import generics
+from rest_framework.decorators import action
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -67,27 +69,47 @@ class ProductViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
+    @action(detail=False, methods=['post'], url_path='confirm')
+    def confirm_order(self, request):
+        cart_id = request.data.get('cart_id')
+        contact_id = request.data.get('contact_id')
 
-        # Log the incoming request data for debugging purposes
-        logging.debug(f"Received data: {data}")
+        logging.debug(f"Confirm order request data: cart_id={cart_id}, contact_id={contact_id}")
 
-        if 'items' not in data:
-            return Response({'error': 'No items provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if not cart_id or not contact_id:
+            return Response({"error": "Cart ID and Contact ID are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        order = Order.objects.create(customer=request.user)
+        try:
+            cart = get_object_or_404(Cart, id=cart_id, user=request.user)
+            contact = get_object_or_404(Contact, id=contact_id, user=request.user)
 
-        for item_data in data['items']:
-            product = get_object_or_404(Product, id=item_data['product_id'])
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=item_data['quantity'],
-                price=product.price
-            )
+            logging.debug(f"Cart retrieved: {cart}, Contact retrieved: {contact}")
 
-        return Response({'status': 'Order created successfully'}, status=status.HTTP_201_CREATED)
+            # Create the order and link the contact
+            order = Order.objects.create(customer=request.user, contact=contact)
+
+            for cart_item in cart.items.all():
+                logging.debug(f"Processing cart item: {cart_item}")
+                OrderItem.objects.create(
+                    order=order,
+                    product=cart_item.product,
+                    quantity=cart_item.quantity,
+                    price=cart_item.product.price
+                )
+
+            # Clear the cart after order confirmation
+            cart.items.all().delete()
+            logging.debug(f"Cart {cart_id} cleared after order confirmation.")
+
+            return Response({"status": "Order confirmed successfully", "order_id": order.id}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+            return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+            return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
@@ -118,10 +140,18 @@ class ContactView(APIView):
         except Contact.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+
 class OrderListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = OrderSerializer  # This tells the view to use your OrderSerializer
+    serializer_class = OrderSerializer
 
     def get_queryset(self):
-        # Return only the orders for the authenticated user
-        return Order.objects.filter(customer=self.request.user)
+        try:
+            # Log the request user for debugging purposes
+            logging.debug(f"Request user: {self.request.user}")
+
+            # Fetch only the orders for the authenticated user
+            return Order.objects.filter(customer=self.request.user)
+        except Exception as e:
+            logging.error(f"Error retrieving orders: {e}")
+            return Response({"error": "Internal server error"}, status=500)

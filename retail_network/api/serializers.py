@@ -34,11 +34,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = ['product', 'quantity', 'price']
 
+
 class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'created_at', 'updated_at']
-
+        fields = ['id', 'customer', 'created_at', 'status', 'items']
 
 class CartSerializer(serializers.ModelSerializer):
     class Meta:
