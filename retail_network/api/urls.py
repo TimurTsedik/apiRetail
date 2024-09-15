@@ -18,5 +18,6 @@ urlpatterns = [
     path('contacts/', ContactView.as_view(), name='contacts'),
     path('orders/', OrderListView.as_view(), name='order-list'),
     path('contacts/<int:contact_id>/', ContactView.as_view(), name='contact-delete'),
+    path('', include(router.urls)),
 ]
 

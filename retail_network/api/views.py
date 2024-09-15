@@ -67,7 +67,12 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Fetch only the orders for the authenticated user
+        return Order.objects.filter(customer=self.request.user)
 
     @action(detail=False, methods=['post'], url_path='confirm')
     def confirm_order(self, request):
@@ -107,11 +112,6 @@ class OrderViewSet(viewsets.ModelViewSet):
             logging.error(f"An error occurred: {e}")
             return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        except Exception as e:
-            logging.error(f"An error occurred: {e}")
-            return Response({"error": "An error occurred while confirming the order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
@@ -147,11 +147,8 @@ class OrderListView(generics.ListAPIView):
 
     def get_queryset(self):
         try:
-            # Log the request user for debugging purposes
             logging.debug(f"Request user: {self.request.user}")
-
-            # Fetch only the orders for the authenticated user
             return Order.objects.filter(customer=self.request.user)
         except Exception as e:
             logging.error(f"Error retrieving orders: {e}")
-            return Response({"error": "Internal server error"}, status=500)
+            return Order.objects.none()  # Return empty queryset in case of an error
